@@ -1,7 +1,11 @@
 Module.register("MMM-MyPir", {
     defaults: {
-        pirPin: 4,           // GPIO pin voor PIR sensor
-        timeout: 60          // tijd in seconden voordat scherm uitgaat
+        pirPin: 4,                // GPIO pin voor PIR sensor
+        timeout: 60,              // tijd in seconden voordat scherm uitgaat
+        x11OnCommand: "xrandr --output <output> --auto",
+        x11OffCommand: "xrandr --output <output> --off",
+        waylandOnCommand: "wlr-randr --output <output> --on",
+        waylandOffCommand: "wlr-randr --output <output> --off"
     },
 
     start: function() {
@@ -86,8 +90,8 @@ Module.register("MMM-MyPir", {
                     outputs.forEach(output => {
                         const name = output.name;
                         const cmd = on
-                            ? `swaymsg output "${name}" enable`
-                            : `swaymsg output "${name}" disable`;
+                            ? this.config.waylandOnCommand.replace("<output>", name)
+                            : this.config.waylandOffCommand.replace("<output>", name);
                         exec(cmd, (error) => {
                             if (error) Log.error("MMM-MyPir: failed to toggle output " + name + ": " + error);
                         });
@@ -97,10 +101,22 @@ Module.register("MMM-MyPir", {
                 }
             });
         } else {
-            // X11
-            const cmd = on ? "xset dpms force on" : "xset dpms force off";
-            exec(cmd, (error) => {
-                if (error) Log.error("MMM-MyPir: failed to toggle X11 screen: " + error);
+            // X11: gebruik xrandr of aangepast commando
+            const getOutputsCmd = "xrandr --listmonitors | grep -oE ' [^ ]+$'";
+            exec(getOutputsCmd, (err, stdout) => {
+                if (err) {
+                    Log.error("MMM-MyPir: failed to list X11 outputs: " + err);
+                    return;
+                }
+                const outputs = stdout.trim().split("\n").map(s => s.trim());
+                outputs.forEach(output => {
+                    const cmd = on
+                        ? this.config.x11OnCommand.replace("<output>", output)
+                        : this.config.x11OffCommand.replace("<output>", output);
+                    exec(cmd, (error) => {
+                        if (error) Log.error("MMM-MyPir: failed to toggle X11 output " + output + ": " + error);
+                    });
+                });
             });
         }
 

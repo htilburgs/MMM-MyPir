@@ -23,7 +23,7 @@ Module.register("MMM-MyPir", {
             if (this.screenOn && (Date.now() - this.lastMotion) / 1000 > this.config.timeout) {
                 this.toggleScreen(false);
                 this.motionDetected = false;
-                this.updateDom();  // update interface
+                this.updateDom();
             }
         }, 1000);
     },
@@ -54,7 +54,7 @@ Module.register("MMM-MyPir", {
             if (!this.screenOn) {
                 this.toggleScreen(true);
             }
-            this.updateDom();  // update interface
+            this.updateDom();
         }
     },
 
@@ -93,7 +93,7 @@ Module.register("MMM-MyPir", {
                             ? this.config.waylandOnCommand.replace("<output>", name)
                             : this.config.waylandOffCommand.replace("<output>", name);
                         exec(cmd, (error) => {
-                            if (error) Log.error("MMM-MyPir: failed to toggle output " + name + ": " + error);
+                            if (error) Log.error("MMM-MyPir: failed to toggle Wayland output " + name + ": " + error);
                         });
                     });
                 } catch (parseErr) {
@@ -101,11 +101,15 @@ Module.register("MMM-MyPir", {
                 }
             });
         } else {
-            // X11: gebruik xrandr of aangepast commando
+            // X11: probeer xrandr eerst
             const getOutputsCmd = "xrandr --listmonitors | grep -oE ' [^ ]+$'";
             exec(getOutputsCmd, (err, stdout) => {
-                if (err) {
-                    Log.error("MMM-MyPir: failed to list X11 outputs: " + err);
+                if (err || !stdout.trim()) {
+                    // fallback naar xset dpms
+                    const fallbackCmd = on ? "xset dpms force on" : "xset dpms force off";
+                    exec(fallbackCmd, (error) => {
+                        if (error) Log.error("MMM-MyPir: fallback xset failed: " + error);
+                    });
                     return;
                 }
                 const outputs = stdout.trim().split("\n").map(s => s.trim());

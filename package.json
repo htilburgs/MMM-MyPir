@@ -1,0 +1,15 @@
+{
+  "name": "MMM-MyPir",
+  "version": "1.0.0",
+  "description": "MagicMirror module to turn the screen on/off with a PIR sensor.",
+  "main": "MMM-MyPir.js",
+  "scripts": {
+    "start": "node serveronly"
+  },
+  "author": "H. Tilburgs",
+  "license": "MIT",
+  "dependencies": {
+    "onoff": "^8.0.0",
+    "child_process": "^1.0.2"
+  }
+}
